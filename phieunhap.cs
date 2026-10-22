@@ -15,7 +15,8 @@ namespace baitaplonQLVT
     public partial class form2 : Form
     {
         string str = @"Data Source=.;Initial Catalog=QL_khovattufinal;Integrated Security=True";
-
+        private bool isSyncingNCC = false;
+        private bool isSyncingNV = false;
         public form2()
         {
             InitializeComponent();
@@ -36,17 +37,23 @@ namespace baitaplonQLVT
             using (SqlConnection conn = new SqlConnection(str))
             {
                 conn.Open();
+                // Sửa lại tên cột cho khớp với cơ sở dữ liệu của bạn (thường là MaNhaCungCap và TenNhaCungCap)
                 string sql = "SELECT MaNhaCungCap, TenNhaCungCap FROM NhaCungCap";
                 SqlDataAdapter da = new SqlDataAdapter(sql, conn);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
+
+                // ComboBox Mã nhà cung cấp
                 cbomanhacungcap.DataSource = dt;
                 cbomanhacungcap.DisplayMember = "MaNhaCungCap";
                 cbomanhacungcap.ValueMember = "MaNhaCungCap";
 
+                // ComboBox Tên nhà cung cấp
                 cbonhacungcap.DataSource = dt.Copy();
                 cbonhacungcap.DisplayMember = "TenNhaCungCap";
                 cbonhacungcap.ValueMember = "MaNhaCungCap";
+                cbomanhacungcap.SelectedIndex = -1;
+                cbonhacungcap.SelectedIndex = -1;
             }
         }
 
@@ -60,15 +67,18 @@ namespace baitaplonQLVT
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                // ComboBox mã nhân viên
+                // ComboBox Mã người nhập
                 cbomanguoilap.DataSource = dt;
                 cbomanguoilap.DisplayMember = "MaNhanVien";
                 cbomanguoilap.ValueMember = "MaNhanVien";
 
-                // ComboBox tên nhân viên
+                // ComboBox Tên người nhập
                 cbotennguoilap.DataSource = dt.Copy();
                 cbotennguoilap.DisplayMember = "TenNhanVien";
                 cbotennguoilap.ValueMember = "MaNhanVien";
+
+                cbomanguoilap.SelectedIndex = -1;
+                cbotennguoilap.SelectedIndex = -1;
             }
         }
         private void Load_PhieuNhap(string maphieu, string mavt, string tenVat)
@@ -98,6 +108,51 @@ namespace baitaplonQLVT
 
                 dgvchitiet.DataSource = tb;
                 dgvchitiet.Refresh();
+            }
+        }
+        // Đồng bộ Nhà cung cấp
+        private void cbomanhacungcap_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (isSyncingNCC) return;
+            if (cbomanhacungcap.SelectedValue != null && cbomanhacungcap.SelectedValue is string)
+            {
+                isSyncingNCC = true;
+                cbonhacungcap.SelectedValue = cbomanhacungcap.SelectedValue;
+                isSyncingNCC = false;
+            }
+        }
+
+        private void cbotennhacungcap_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (isSyncingNCC) return;
+            if (cbonhacungcap.SelectedValue != null && cbonhacungcap.SelectedValue is string)
+            {
+                isSyncingNCC = true;
+                cbomanhacungcap.SelectedValue = cbonhacungcap.SelectedValue;
+                isSyncingNCC = false;
+            }
+        }
+
+        // Đồng bộ Người nhập / Nhân viên
+        private void cbomanguoinhap_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (isSyncingNV) return;
+            if (cbotennguoilap.SelectedValue != null && cbonhacungcap.SelectedValue is string)
+            {
+                isSyncingNV = true;
+                cbotennguoilap.SelectedValue = cbonhacungcap.SelectedValue;
+                isSyncingNV = false;
+            }
+        }
+
+        private void cbotennguoilap_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (isSyncingNV) return;
+            if (cbotennguoilap.SelectedValue != null && cbotennguoilap.SelectedValue is string)
+            {
+                isSyncingNV = true;
+                cbotennguoilap.SelectedValue = cbotennguoilap.SelectedValue;
+                isSyncingNV = false;
             }
         }
         // Kiểm tra xem mã phiếu đã tồn tại chưa
@@ -397,12 +452,16 @@ namespace baitaplonQLVT
 
                 if (dgvchitiet.Rows[i].Cells["MaNhaCungCap"].Value != DBNull.Value)
                 {
-                    cbomanhacungcap.SelectedValue = dgvchitiet.Rows[i].Cells["MaNhaCungCap"].Value.ToString();
+                    string maNCC = dgvchitiet.Rows[i].Cells["MaNhaCungCap"].Value.ToString();
+                    cbomanhacungcap.SelectedValue = maNCC;
+                    cbonhacungcap.SelectedValue = maNCC;
                 }
 
                 if (dgvchitiet.Rows[i].Cells["MaNhanVien"].Value != DBNull.Value)
                 {
-                    cbomanguoilap.SelectedValue = dgvchitiet.Rows[i].Cells["MaNhanVien"].Value.ToString();
+                    string maNV = dgvchitiet.Rows[i].Cells["MaNhanVien"].Value.ToString();
+                    cbomanguoilap.SelectedValue = maNV;
+                    cbotennguoilap.SelectedValue = maNV;
                 }
             }
         }
@@ -430,6 +489,11 @@ namespace baitaplonQLVT
 
             txttimkiemtenvattu.Clear();
             txttimkiemmavattu.Clear();
+
+            cbomanhacungcap.SelectedIndex = -1;
+            cbonhacungcap.SelectedIndex = -1;
+            cbomanguoilap.SelectedIndex = -1;
+            cbotennguoilap.SelectedIndex = -1;
 
             txtmavattu.Focus();
             Load_PhieuNhap("", "", "");
